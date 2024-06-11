@@ -1,4 +1,4 @@
-package com.showtheway.presentation
+package com.showtheway.main
 
 import android.content.pm.PackageManager
 import android.os.Bundle
@@ -13,10 +13,10 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.showtheway.BuildConfig
+import com.showtheway.UiState
 import com.showtheway.databinding.ActivityMainBinding
-import com.yandex.mapkit.MapKit
+import com.showtheway.map.MapFragment
 import com.yandex.mapkit.MapKitFactory
-import com.yandex.mapkit.map.MapObjectCollection
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
@@ -29,19 +29,9 @@ class MainActivity : AppCompatActivity() {
 
     private val viewModel: MainViewModel by viewModels()
 
-    private val permissionsHandler: PermissionsHandler = PermissionsHandler()
-
-    private val mapKit : MapKit by lazy {
-        MapKitFactory.getInstance()
-    }
-    private val routesCollection: MapObjectCollection by lazy {
-        binding.mapView.mapWindow.map.mapObjects.addCollection()
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        MapKitFactory.setApiKey(BuildConfig.MAP_KIT_API_KEY)
-
         setContentView(binding.root)
         enableEdgeToEdge()
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { v, insets ->
@@ -53,23 +43,11 @@ class MainActivity : AppCompatActivity() {
         MapKitFactory.initialize(this)
 
         observeState()
-        binding.showTheWayButton.setOnClickListener {
-            lifecycleScope.launch {
-                permissionsHandler.requestPermissions(this@MainActivity)
-            }
+        registerForFragmentResult()
+
+        binding.showTheWayButton.setOnClickListener{
+            onButtonClick()
         }
-    }
-
-    override fun onStart() {
-        super.onStart()
-        mapKit.onStart()
-        binding.mapView.onStart()
-    }
-
-    override fun onStop() {
-        mapKit.onStop()
-        binding.mapView.onStop()
-        super.onStop()
     }
 
     override fun onRequestPermissionsResult(
@@ -78,9 +56,11 @@ class MainActivity : AppCompatActivity() {
         grantResults: IntArray
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == PermissionsHandler.REQUEST_CODE) {
-            if (grantResults.contains(PackageManager.PERMISSION_GRANTED))
-                viewModel.onRequestPermissionsResult(true)
+        if (requestCode == MainViewModel.REQUEST_CODE) {
+            lifecycleScope.launch {
+                val permissionGranted = grantResults.contains(PackageManager.PERMISSION_GRANTED)
+                viewModel.onPermissionRequest(permissionGranted, this@MainActivity)
+            }
         }
     }
 
@@ -96,33 +76,55 @@ class MainActivity : AppCompatActivity() {
 
     private fun handleState(state: UiState) {
         when (state) {
-            is UiState.Success -> {
-                updateVisibility(mapViewIsVisible = true)
-                routesCollection.addPolyline(state.route.geometry)
-                // navigate to mapFragment
+            is UiState.Success<*> -> {
+                updateVisibility(mapContainerIsVisible = true)
+                goToMap()
             }
             is UiState.Init -> {
                 updateVisibility(showTheWayButtonIsVisible = true)
-                // show InitialFragment with single button
             }
             is UiState.Message -> {
                 updateVisibility(showTheWayButtonIsVisible = true, messageIsVisible  = true)
                 binding.negativeMessageView.setText(state.message)
-                //
             }
         }
     }
 
     private fun updateVisibility(
-        mapViewIsVisible: Boolean = false,
         messageIsVisible: Boolean = false,
-        showTheWayButtonIsVisible: Boolean = false
+        showTheWayButtonIsVisible: Boolean = false,
+        mapContainerIsVisible: Boolean = false
     ) = with(binding) {
-        mapView.isVisible  = mapViewIsVisible
-        negativeMessageView.isVisible  = messageIsVisible
-        showTheWayButton.isVisible  = showTheWayButtonIsVisible
+        negativeMessageView.isVisible = messageIsVisible
+        showTheWayButton.isVisible = showTheWayButtonIsVisible
+        mapContainer.isVisible = mapContainerIsVisible
     }
-    // permission for access to location
-    // check for internet connection
 
+    private fun goToMap() = with(supportFragmentManager.beginTransaction()) {
+        setReorderingAllowed(true)
+        add(binding.mapContainer.id, MapFragment::class.java, null)
+        commit()
+    }
+
+    private fun onButtonClick() {
+        lifecycleScope.launch {
+            if (viewModel.permissionGranted(this@MainActivity)) {
+                viewModel.onPermissionRequest(true, this@MainActivity)
+            } else {
+                viewModel.requestPermissions(this@MainActivity)
+            }
+        }
+    }
+
+    private fun registerForFragmentResult() {
+        supportFragmentManager.setFragmentResultListener(
+            BuildConfig.RESULT_KEY,
+            this@MainActivity
+        ) { _, bundle ->
+            val result = bundle.getInt(BuildConfig.BUNDLE_KEY)
+            lifecycleScope.launch {
+                viewModel.onFragmentResult(result)
+            }
+        }
+    }
 }

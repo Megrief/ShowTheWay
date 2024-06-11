@@ -5,14 +5,14 @@
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".presentation.MainActivity">
+    tools:context=".main.MainActivity">
 
     <TextView
         android:id="@+id/negative_message_view"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginBottom="24dp"
-        android:text="@string/no_permissions_message"
+        tools:text="@string/no_permissions_message"
         android:textAlignment="center"
         android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
         app:layout_constraintBottom_toTopOf="@id/show_the_way_button"
@@ -33,14 +33,9 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/negative_message_view" />
 
-    <com.yandex.mapkit.mapview.MapView
-        android:id="@+id/map_view"
+    <androidx.fragment.app.FragmentContainerView
+        android:id="@+id/map_container"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:visibility="gone"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        android:layout_height="match_parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

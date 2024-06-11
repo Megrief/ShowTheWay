@@ -4,4 +4,6 @@
     <string name="no_permissions_message">The application can\'t show the way\nwithout access to your location.\n:(</string>
     <string name="network_error_message">Network error occurred! Check internet connection and try again.</string>
     <string name="unknown_error_message">Unknown error occurred! Try again.</string>
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
 </resources>

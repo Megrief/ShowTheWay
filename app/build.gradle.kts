@@ -15,6 +15,9 @@ android {
         versionName = "1.0"
 
         buildConfigField(type="String", name = "MAP_KIT_API_KEY", value = "\"9cbcb249-d729-479f-80d6-c21976978fc5\"")
+        buildConfigField(type="String", name = "RESULT_KEY", value = "\"resultKey\"")
+        buildConfigField(type="String", name = "BUNDLE_KEY", value = "\"bundleKey\"")
+
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 

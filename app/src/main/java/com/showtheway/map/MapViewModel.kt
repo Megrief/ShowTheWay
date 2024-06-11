@@ -1,6 +1,9 @@
-package com.showtheway.data
+package com.showtheway.map
 
-import android.accounts.NetworkErrorException
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.showtheway.R
+import com.showtheway.UiState
 import com.yandex.mapkit.MapKitFactory
 import com.yandex.mapkit.RequestPoint
 import com.yandex.mapkit.RequestPointType
@@ -9,7 +12,6 @@ import com.yandex.mapkit.directions.driving.DrivingOptions
 import com.yandex.mapkit.directions.driving.DrivingRoute
 import com.yandex.mapkit.directions.driving.DrivingRouterType
 import com.yandex.mapkit.directions.driving.DrivingSession
-import com.yandex.mapkit.directions.driving.DrivingSession.DrivingRouteListener
 import com.yandex.mapkit.directions.driving.VehicleOptions
 import com.yandex.mapkit.geometry.Point
 import com.yandex.mapkit.location.Location
@@ -17,30 +19,26 @@ import com.yandex.mapkit.location.LocationListener
 import com.yandex.mapkit.location.LocationStatus
 import com.yandex.runtime.Error
 import com.yandex.runtime.network.NetworkError
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.emptyFlow
-import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
 
-private const val LATITUDE = 56.833742
-private const val LONGITUDE = 60.635716
+class MapViewModel : ViewModel() {
 
-class MapRepository {
     private val locationManager = MapKitFactory.getInstance().createLocationManager()
     private val drivingRouter = DirectionsFactory.getInstance().createDrivingRouter(DrivingRouterType.ONLINE)
     private var drivingSession: DrivingSession? = null
-
     private val endPoint = Point(LATITUDE, LONGITUDE)
     private var startPoint: Point? = null
         set(value) {
-            field = value
-            buildRoute(value!!, endPoint)
+            value?.let {
+                field = it
+                buildRoute(it, endPoint)
+            }
         }
 
-    var route: Flow<Result<DrivingRoute>> = emptyFlow()
-        set(value) {
-            field = value
-            drivingSession?.cancel()
-        }
+    private var _state: MutableStateFlow<UiState> = MutableStateFlow(UiState.Init)
+    val state: StateFlow<UiState> = _state
 
     private val locationListener = object : LocationListener {
         override fun onLocationUpdated(p0: Location) {
@@ -54,43 +52,36 @@ class MapRepository {
         override fun onLocationStatusUpdated(p0: LocationStatus) { }
     }
 
-    private val drivingRouteListener = object : DrivingRouteListener {
+    private val drivingRouteListener = object : DrivingSession.DrivingRouteListener {
         override fun onDrivingRoutes(p0: MutableList<DrivingRoute>) {
-            route = flow {
-                emit(Result.success(p0.first()))
+            viewModelScope.launch {
+                _state.emit(UiState.Success(p0.first()))
             }
+            drivingSession?.cancel()
         }
 
         override fun onDrivingRoutesError(p0: Error) {
-            route = flow {
-                if (p0 is NetworkError) emit(Result.failure(NetworkErrorException()))
-                else emit(Result.failure(UnknownError()))
+            viewModelScope.launch {
+                val message = if (p0 is NetworkError) {
+                    R.string.network_error_message
+                } else {
+                    R.string.unknown_error_message
+                }
+
+                _state.emit(UiState.Message(message))
             }
+            drivingSession?.cancel()
         }
     }
 
-    fun updateRoute() {
+    init {
         locationManager.requestSingleUpdate(locationListener)
     }
 
     private fun buildRoute(startPoint: Point, endPoint: Point)  {
         val points = buildList {
-            add(
-                RequestPoint(
-                    startPoint,
-                    RequestPointType.WAYPOINT,
-                    null,
-                    null
-                )
-            )
-            add(
-                RequestPoint(
-                    endPoint,
-                    RequestPointType.WAYPOINT,
-                    null,
-                    null
-                )
-            )
+            add(RequestPoint(startPoint, RequestPointType.WAYPOINT, null, null))
+            add(RequestPoint(endPoint, RequestPointType.WAYPOINT, null, null))
         }
 
         drivingSession = drivingRouter.requestRoutes(
@@ -99,5 +90,10 @@ class MapRepository {
             VehicleOptions(),
             drivingRouteListener
         )
+    }
+
+    companion object {
+        private const val LATITUDE = 56.833742
+        private const val LONGITUDE = 60.635716
     }
 }

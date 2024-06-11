@@ -1,5 +1,6 @@
 package com.showtheway.presentation
 
+import android.content.pm.PackageManager
 import android.os.Bundle
 import android.view.LayoutInflater
 import androidx.activity.enableEdgeToEdge
@@ -12,9 +13,10 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.showtheway.BuildConfig
-import com.showtheway.R
 import com.showtheway.databinding.ActivityMainBinding
+import com.yandex.mapkit.MapKit
 import com.yandex.mapkit.MapKitFactory
+import com.yandex.mapkit.map.MapObjectCollection
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
@@ -29,13 +31,20 @@ class MainActivity : AppCompatActivity() {
 
     private val permissionsHandler: PermissionsHandler = PermissionsHandler()
 
+    private val mapKit : MapKit by lazy {
+        MapKitFactory.getInstance()
+    }
+    private val routesCollection: MapObjectCollection by lazy {
+        binding.mapView.mapWindow.map.mapObjects.addCollection()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         MapKitFactory.setApiKey(BuildConfig.MAP_KIT_API_KEY)
 
-        enableEdgeToEdge()
         setContentView(binding.root)
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
+        enableEdgeToEdge()
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
@@ -53,12 +62,12 @@ class MainActivity : AppCompatActivity() {
 
     override fun onStart() {
         super.onStart()
-        MapKitFactory.getInstance().onStart()
+        mapKit.onStart()
         binding.mapView.onStart()
     }
 
     override fun onStop() {
-        MapKitFactory.getInstance().onStop()
+        mapKit.onStop()
         binding.mapView.onStop()
         super.onStop()
     }
@@ -70,7 +79,8 @@ class MainActivity : AppCompatActivity() {
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == PermissionsHandler.REQUEST_CODE) {
-            viewModel.onPermissionRequestResult(permissionsHandler.permissionGranted(this))
+            if (grantResults.contains(PackageManager.PERMISSION_GRANTED))
+                viewModel.onRequestPermissionsResult(true)
         }
     }
 
@@ -88,12 +98,17 @@ class MainActivity : AppCompatActivity() {
         when (state) {
             is UiState.Success -> {
                 updateVisibility(mapViewIsVisible = true)
+                routesCollection.addPolyline(state.route.geometry)
+                // navigate to mapFragment
             }
             is UiState.Init -> {
                 updateVisibility(showTheWayButtonIsVisible = true)
+                // show InitialFragment with single button
             }
             is UiState.Message -> {
                 updateVisibility(showTheWayButtonIsVisible = true, messageIsVisible  = true)
+                binding.negativeMessageView.setText(state.message)
+                //
             }
         }
     }

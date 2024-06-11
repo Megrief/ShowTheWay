@@ -28,6 +28,7 @@ class MapViewModel : ViewModel() {
     private val locationManager = MapKitFactory.getInstance().createLocationManager()
     private val drivingRouter = DirectionsFactory.getInstance().createDrivingRouter(DrivingRouterType.ONLINE)
     private var drivingSession: DrivingSession? = null
+
     private val endPoint = Point(LATITUDE, LONGITUDE)
     private var startPoint: Point? = null
         set(value) {

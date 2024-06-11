@@ -21,9 +21,11 @@ class MainViewModel : ViewModel() {
         get() = _state
 
     suspend fun onPermissionRequest(permissionGranted: Boolean, context: Context) {
-        if (!checkInternetConnection(context)) _state.emit(UiState.Message(R.string.network_error_message))
-        else if (permissionGranted) _state.emit(UiState.Success(Unit))
-        else _state.emit(UiState.Message(R.string.no_permissions_message))
+        when {
+            !checkInternetConnection(context) -> _state.emit(UiState.Message(R.string.network_error_message))
+            permissionGranted  ->  _state.emit(UiState.Success(Unit))
+            else -> _state.emit(UiState.Message(R.string.no_permissions_message))
+        }
     }
 
     val permissionGranted: (Context) -> Boolean = {
@@ -55,10 +57,11 @@ class MainViewModel : ViewModel() {
         _state.emit(UiState.Message(message))
     }
 
-    suspend fun checkInternetConnection(context: Context): Boolean {
+    private fun checkInternetConnection(context: Context): Boolean {
         val connectivityManager = ContextCompat.getSystemService(context, ConnectivityManager::class.java)
         val activeNetwork = connectivityManager?.activeNetwork
         val networkCapabilities = connectivityManager?.getNetworkCapabilities(activeNetwork)
+
         return networkCapabilities?.let {
             it.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)
                     || it.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)

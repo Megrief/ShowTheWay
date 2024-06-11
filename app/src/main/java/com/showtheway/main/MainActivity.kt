@@ -29,7 +29,6 @@ class MainActivity : AppCompatActivity() {
 
     private val viewModel: MainViewModel by viewModels()
 
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
@@ -78,7 +77,7 @@ class MainActivity : AppCompatActivity() {
         when (state) {
             is UiState.Success<*> -> {
                 updateVisibility(mapContainerIsVisible = true)
-                goToMap()
+                navigateToMap()
             }
             is UiState.Init -> {
                 updateVisibility(showTheWayButtonIsVisible = true)
@@ -100,7 +99,7 @@ class MainActivity : AppCompatActivity() {
         mapContainer.isVisible = mapContainerIsVisible
     }
 
-    private fun goToMap() = with(supportFragmentManager.beginTransaction()) {
+    private fun navigateToMap() = with(supportFragmentManager.beginTransaction()) {
         setReorderingAllowed(true)
         add(binding.mapContainer.id, MapFragment::class.java, null)
         commit()

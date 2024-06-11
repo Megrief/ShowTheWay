@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">ShowTheWay</string>
+    <string name="show_the_way">Show the way</string>
+    <string name="negative_message">The application can\'t show the way\nwithout access to your location.\n:(</string>
+</resources>

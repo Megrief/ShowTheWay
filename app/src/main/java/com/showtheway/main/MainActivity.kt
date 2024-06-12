@@ -57,7 +57,7 @@ class MainActivity : AppCompatActivity() {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == MainViewModel.REQUEST_CODE) {
             lifecycleScope.launch {
-                val permissionGranted = grantResults.contains(PackageManager.PERMISSION_GRANTED)
+                val permissionGranted = grantResults.first() == PackageManager.PERMISSION_GRANTED
                 viewModel.onPermissionRequest(permissionGranted, this@MainActivity)
             }
         }
@@ -105,12 +105,12 @@ class MainActivity : AppCompatActivity() {
         commit()
     }
 
-    private fun onButtonClick() {
+    private fun onButtonClick() = with(viewModel) {
         lifecycleScope.launch {
-            if (viewModel.permissionGranted(this@MainActivity)) {
-                viewModel.onPermissionRequest(true, this@MainActivity)
+            if (permissionGranted(this@MainActivity)) {
+                onPermissionRequest(true, this@MainActivity)
             } else {
-                viewModel.requestPermissions(this@MainActivity)
+                requestPermissions(this@MainActivity)
             }
         }
     }

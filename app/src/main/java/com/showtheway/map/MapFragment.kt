@@ -77,11 +77,12 @@ class MapFragment : Fragment() {
         when (state) {
             is UiState.Init -> { }
             is UiState.Success<*> -> {
-                val polyline = (state.data as DrivingRoute).geometry
-                map.mapObjects.addPolyline(polyline)
-                val geometry = Geometry.fromPolyline(polyline)
-                val position = map.cameraPosition(geometry)
-                map.move(position)
+               (state.data as? DrivingRoute)?.geometry?.let { polyline ->
+                    map.mapObjects.addPolyline(polyline)
+                    val geometry = Geometry.fromPolyline(polyline)
+                    val position = map.cameraPosition(geometry)
+                    map.move(position)
+               }
             }
             is UiState.Message -> {
                 val bundle = bundleOf(BuildConfig.BUNDLE_KEY to state.message)

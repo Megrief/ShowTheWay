@@ -7,18 +7,18 @@ import android.view.ViewGroup
 import androidx.core.os.bundleOf
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.showtheway.BuildConfig
-import com.showtheway.databinding.FragmentMapBinding
 import com.showtheway.UiState
+import com.showtheway.databinding.FragmentMapBinding
 import com.yandex.mapkit.MapKitFactory
 import com.yandex.mapkit.directions.driving.DrivingRoute
 import com.yandex.mapkit.geometry.Geometry
 import com.yandex.mapkit.map.Map
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import org.koin.androidx.viewmodel.ext.android.viewModel
 
 class MapFragment : Fragment() {
 
@@ -27,9 +27,7 @@ class MapFragment : Fragment() {
     private val binding: FragmentMapBinding
         get() = _binding!!
 
-    private val viewModel: MapViewModel by lazy {
-        ViewModelProvider(requireActivity())[MapViewModel::class.java]
-    }
+    private val viewModel: MapViewModel by viewModel()
 
     private val map: Map by lazy {
         binding.root.mapWindow.map

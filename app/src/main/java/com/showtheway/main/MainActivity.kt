@@ -1,24 +1,30 @@
 package com.showtheway.main
 
+import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.view.LayoutInflater
 import androidx.activity.enableEdgeToEdge
-import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isVisible
+import androidx.fragment.app.commit
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.showtheway.BuildConfig
+import com.showtheway.R
 import com.showtheway.UiState
 import com.showtheway.databinding.ActivityMainBinding
 import com.showtheway.map.MapFragment
+import com.showtheway.util.PermissionsHandler
 import com.yandex.mapkit.MapKitFactory
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import org.koin.android.ext.android.inject
+import org.koin.androidx.viewmodel.ext.android.viewModel
+import org.koin.core.parameter.parametersOf
 
 class MainActivity : AppCompatActivity() {
 
@@ -27,7 +33,11 @@ class MainActivity : AppCompatActivity() {
         ActivityMainBinding.inflate(inflater)
     }
 
-    private val viewModel: MainViewModel by viewModels()
+    private val permissionsHandler: PermissionsHandler by inject {
+        parametersOf(this@MainActivity as Context)
+    }
+
+    private val viewModel: MainViewModel by viewModel()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -58,7 +68,7 @@ class MainActivity : AppCompatActivity() {
         if (requestCode == MainViewModel.REQUEST_CODE) {
             lifecycleScope.launch {
                 val permissionGranted = grantResults.first() == PackageManager.PERMISSION_GRANTED
-                viewModel.onPermissionRequest(permissionGranted, this@MainActivity)
+                viewModel.onPermissionRequest(permissionGranted)
             }
         }
     }
@@ -99,18 +109,21 @@ class MainActivity : AppCompatActivity() {
         mapContainer.isVisible = mapContainerIsVisible
     }
 
-    private fun navigateToMap() = with(supportFragmentManager.beginTransaction()) {
-        setReorderingAllowed(true)
-        add(binding.mapContainer.id, MapFragment::class.java, null)
-        commit()
+    private fun navigateToMap() {
+        supportFragmentManager.commit {
+            setReorderingAllowed(true)
+            add(binding.mapContainer.id, MapFragment::class.java, null)
+        }
     }
 
-    private fun onButtonClick() = with(viewModel) {
+    private fun onButtonClick() {
         lifecycleScope.launch {
-            if (permissionGranted(this@MainActivity)) {
-                onPermissionRequest(true, this@MainActivity)
+            if (permissionsHandler.permissionGranted()) {
+                viewModel.onPermissionRequest(true)
             } else {
-                requestPermissions(this@MainActivity)
+                permissionsHandler.requestPermissions().also {
+                    if (!it) viewModel.onFragmentResult(R.string.unknown_error_message)
+                }
             }
         }
     }

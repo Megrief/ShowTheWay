@@ -56,4 +56,6 @@ dependencies {
     androidTestImplementation(libs.androidx.espresso.core)
     implementation(libs.maps.yandex)
     implementation(libs.viewmodel.lifecycle)
+    implementation(libs.koin)
+
 }
